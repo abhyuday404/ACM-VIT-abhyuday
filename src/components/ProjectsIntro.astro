@@ -169,6 +169,32 @@
       window.visualViewport?.addEventListener("resize", queueRevealUpdate, {
         passive: true,
       });
+
+      const cleanupReveal = () => {
+        if (revealRafId) {
+          cancelAnimationFrame(revealRafId);
+          revealRafId = 0;
+        }
+
+        window.removeEventListener("scroll", queueRevealUpdate);
+        document.body.removeEventListener("scroll", queueRevealUpdate);
+        window.removeEventListener("resize", queueRevealUpdate);
+        window.removeEventListener("orientationchange", queueRevealUpdate);
+        window.removeEventListener("app:variants-mounted", queueRevealUpdate);
+        window.visualViewport?.removeEventListener(
+          "scroll",
+          queueRevealUpdate
+        );
+        window.visualViewport?.removeEventListener(
+          "resize",
+          queueRevealUpdate
+        );
+        document.removeEventListener("astro:before-swap", cleanupReveal);
+      };
+
+      document.addEventListener("astro:before-swap", cleanupReveal, {
+        once: true,
+      });
     }
   }
   // Container Animation (Rotation)
