@@ -1,6 +1,6 @@
 {
   "name": "acmvit-website",
-  "compatibility_date": "2024-05-02",
+  "compatibility_date": "2026-01-01",
   "compatibility_flags": [
     "nodejs_compat"
   ],
