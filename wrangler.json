@@ -1,0 +1,10 @@
+{
+  "name": "acm-vit-website",
+  "compatibility_date": "2024-05-02",
+  "compatibility_flags": [
+    "nodejs_compat"
+  ],
+  "vars": {
+    "PUBLIC_CDN_URL": "https://acmvitin.s3.ap-south-1.amazonaws.com"
+  }
+}
