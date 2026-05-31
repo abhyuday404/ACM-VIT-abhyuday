@@ -10,5 +10,20 @@
   },
   "vars": {
     "PUBLIC_CDN_URL": "https://acmvitin.s3.ap-south-1.amazonaws.com"
+  },
+  "observability": {
+    "enabled": false,
+    "head_sampling_rate": 1,
+    "logs": {
+      "enabled": true,
+      "head_sampling_rate": 1,
+      "persist": true,
+      "invocation_logs": true
+    },
+    "traces": {
+      "enabled": false,
+      "persist": true,
+      "head_sampling_rate": 1
+    }
   }
 }
