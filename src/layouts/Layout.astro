@@ -335,6 +335,93 @@ const description =
     </script>
     <script>
       (() => {
+        let isOpen = false;
+
+        const getModal = () => document.getElementById("proof-gallery-modal");
+
+        const openGallery = () => {
+          if (isOpen) return;
+
+          const modal = getModal();
+          if (!modal) return;
+
+          isOpen = true;
+          modal.classList.add("modal-open");
+          modal.setAttribute("aria-hidden", "false");
+          document.body.style.overflow = "hidden";
+
+          if (window.location.hash !== "#gallery-view") {
+            history.pushState({ galleryOpen: true }, "", "#gallery-view");
+          }
+        };
+
+        const closeGallery = () => {
+          if (!isOpen) return;
+
+          const modal = getModal();
+          isOpen = false;
+          modal?.classList.remove("modal-open");
+          modal?.setAttribute("aria-hidden", "true");
+          document.body.style.overflow = "";
+        };
+
+        const closeWithHistory = () => {
+          if (window.location.hash === "#gallery-view") {
+            history.back();
+            return;
+          }
+
+          closeGallery();
+        };
+
+        const galleryWindow = window as typeof window & {
+          openProofGallery?: () => void;
+        };
+        galleryWindow.openProofGallery = openGallery;
+
+        document.addEventListener("click", (event) => {
+          const target = event.target;
+          if (!(target instanceof Element)) return;
+
+          if (target.closest("[data-proof-gallery-trigger]")) {
+            event.preventDefault();
+            openGallery();
+            return;
+          }
+
+          if (target.closest("#proof-gallery-close")) {
+            event.preventDefault();
+            closeWithHistory();
+          }
+        });
+
+        document.addEventListener("keydown", (event) => {
+          const target = event.target;
+
+          if (event.key === "Escape" && isOpen) {
+            closeWithHistory();
+            return;
+          }
+
+          const isKeyboardTrigger =
+            event.key === "Enter" || event.key === " ";
+          if (
+            isKeyboardTrigger &&
+            target instanceof Element &&
+            target.closest("[data-proof-gallery-trigger]")
+          ) {
+            event.preventDefault();
+            openGallery();
+          }
+        });
+
+        window.addEventListener("popstate", () => {
+          closeGallery();
+        });
+      })();
+    </script>
+    <script>
+      (() => {
         const root = document.documentElement;
 
         const scaleFromWidth = (
