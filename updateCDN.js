@@ -31,6 +31,26 @@ const {
 } = fs;
 const { resolve, join, extname } = path;
 
+const UPLOAD_CONCURRENCY_LIMIT =
+  Number(process.env.UPLOAD_CONCURRENCY_LIMIT) || 5;
+const limit = pLimit(UPLOAD_CONCURRENCY_LIMIT);
+const BUCKET_NAME = process.env.AWS_BUCKET_NAME;
+const OUTPUT_DIR = process.env.ASTRO_OUTPUT_DIR || "./dist";
+const DISTRIBUTION_ID = process.env.AWS_DISTRIBUTION_ID;
+
+const hasAwsCredentials =
+  process.env.AWS_ACCESS_KEY_ID &&
+  process.env.AWS_SECRET_ACCESS_KEY &&
+  process.env.AWS_REGION &&
+  BUCKET_NAME;
+
+if (!hasAwsCredentials) {
+  console.log(
+    "Skipped CDN sync. Set AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, AWS_REGION, and AWS_BUCKET_NAME to upload build assets."
+  );
+  process.exit(0);
+}
+
 const AWS_CONFIG = {
   region: process.env.AWS_REGION,
   credentials: {
@@ -41,18 +61,6 @@ const AWS_CONFIG = {
 
 const s3Client = new S3Client(AWS_CONFIG);
 const cloudfrontClient = new CloudFrontClient(AWS_CONFIG);
-
-const UPLOAD_CONCURRENCY_LIMIT =
-  Number(process.env.UPLOAD_CONCURRENCY_LIMIT) || 5;
-const limit = pLimit(UPLOAD_CONCURRENCY_LIMIT);
-const BUCKET_NAME = process.env.AWS_BUCKET_NAME;
-const OUTPUT_DIR = process.env.ASTRO_OUTPUT_DIR || "./dist";
-const DISTRIBUTION_ID = process.env.AWS_DISTRIBUTION_ID;
-
-if (!BUCKET_NAME) {
-  console.error("❌ Missing AWS_BUCKET_NAME in environment.");
-  process.exit(1);
-}
 
 const LONG_CACHE_CONTROL = "public, max-age=31556926, immutable";
 const SHORT_CACHE_CONTROL = "public, max-age=0, must-revalidate";
