@@ -312,13 +312,18 @@
     applyOverlayProgress(progress);
   };
 
-  let scrollRafId = 0;
-  const queueScrollUpdate = () => {
-    if (scrollRafId) return;
-    scrollRafId = requestAnimationFrame(() => {
-      scrollRafId = 0;
-      updateFromScroll();
-    });
+  let activeLoopRafId = 0;
+  const runActiveLoop = () => {
+    activeLoopRafId = 0;
+    updateFromScroll();
+    if (isSectionNearViewport()) {
+      activeLoopRafId = requestAnimationFrame(runActiveLoop);
+    }
+  };
+
+  const startActiveLoop = () => {
+    if (activeLoopRafId) return;
+    activeLoopRafId = requestAnimationFrame(runActiveLoop);
   };
 
   const initSequence = async () => {
@@ -348,11 +353,19 @@
     }
 
     updateFromScroll();
-    window.addEventListener("scroll", queueScrollUpdate, { passive: true });
-    window.visualViewport?.addEventListener("scroll", queueScrollUpdate, {
+    startActiveLoop();
+    window.addEventListener("scroll", startActiveLoop, { passive: true });
+    document.addEventListener("scroll", startActiveLoop, {
+      capture: true,
       passive: true,
     });
-    window.visualViewport?.addEventListener("resize", queueScrollUpdate, {
+    document.body?.addEventListener("scroll", startActiveLoop, {
+      passive: true,
+    });
+    window.visualViewport?.addEventListener("scroll", startActiveLoop, {
+      passive: true,
+    });
+    window.visualViewport?.addEventListener("resize", startActiveLoop, {
       passive: true,
     });
   };
@@ -405,7 +418,7 @@
   window.addEventListener("resize", () => {
     resizeCanvas();
     lastRenderedFrame = -1;
-    updateFromScroll();
+    startActiveLoop();
   });
 
   // Form handling
