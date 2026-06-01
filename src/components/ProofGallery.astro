@@ -212,104 +212,46 @@ import { getAssetUrl } from "../utils/cdn";
   }
 </style>
 
-<script>
-  import { gsap } from "gsap";
+<script is:inline>
+  (() => {
+    if (window.__proofGalleryReady) return;
+    window.__proofGalleryReady = true;
 
-  const modal = document.getElementById("proof-gallery-modal");
-  const closeBtn = document.getElementById("proof-gallery-close");
-  const gridContainer = document.getElementById("proof-gallery-grid-container");
-  const galleryItems = document.querySelectorAll(".gallery-item");
+    const modal = document.getElementById("proof-gallery-modal");
+    let isOpen = false;
 
-  let isOpen = false;
+    const openGallery = () => {
+      if (isOpen) return;
+      isOpen = true;
+      history.pushState({ galleryOpen: true }, "", "#gallery-view");
+      modal?.classList.add("modal-open");
+      document.body.style.overflow = "hidden";
+    };
 
-  function openGallery() {
-    if (isOpen) return;
-    isOpen = true;
+    const closeGallery = () => {
+      if (!isOpen) return;
+      isOpen = false;
+      modal?.classList.remove("modal-open");
+      document.body.style.overflow = "";
+    };
 
-    // Push history state to handle back button
-    history.pushState({ galleryOpen: true }, "", "#gallery-view");
+    window.openProofGallery = openGallery;
 
-    // Make visible
-    if (modal) {
-      modal.classList.add("modal-open");
-
-      // Animate entrance
-      const tl = gsap.timeline();
-
-      tl.fromTo(
-        modal,
-        { opacity: 0 },
-        { opacity: 1, duration: 0.3, ease: "power2.out" }
-      ).fromTo(
-        galleryItems,
-        { y: 50, opacity: 0 },
-        {
-          y: 0,
-          opacity: 1,
-          stagger: 0.05,
-          duration: 0.5,
-          ease: "back.out(1.2)",
-        },
-        "-=0.1"
-      );
-    }
-
-    // Disable body scroll
-    document.body.style.overflow = "hidden";
-  }
-
-  function closeGallery() {
-    if (!isOpen) return;
-    isOpen = false;
-
-    if (modal) {
-      // Animate exit
-      gsap.to(modal, {
-        opacity: 0,
-        duration: 0.3,
-        ease: "power2.in",
-        onComplete: () => {
-          modal.classList.remove("modal-open");
-          // Reset items for next open
-          gsap.set(galleryItems, { clearProps: "all" });
-        },
-      });
-    }
-
-    // Enable body scroll
-    document.body.style.overflow = "";
-  }
-
-  // Global expose for triggers
-  (window as any).openProofGallery = openGallery;
-
-  // Event Listeners
-  if (closeBtn) {
-    closeBtn.addEventListener("click", () => {
-      // Use history.back() to trigger popstate and keep history clean
-      history.back();
+    document.addEventListener("click", (event) => {
+      const target = event.target;
+      if (target instanceof Element && target.closest("#proof-gallery-close")) {
+        history.back();
+      }
     });
-  }
 
-  // Handle escape key
-  document.addEventListener("keydown", (e) => {
-    if (e.key === "Escape" && isOpen) {
-      history.back();
-    }
-  });
+    document.addEventListener("keydown", (event) => {
+      if (event.key === "Escape" && isOpen) {
+        history.back();
+      }
+    });
 
-  // Handle back button
-  window.addEventListener("popstate", (event) => {
-    // If we pop state and we think we are open, we should likely close.
-    // However, if we just opened, we pushed state.
-    // So popping state usually means going back.
-    if (isOpen) {
-      closeGallery();
-    }
-  });
-
-  // Re-attach listeners on view transitions (optional safety)
-  document.addEventListener('astro:page-load', () => {
-      // Logic if needed for view transitions, but for now this is static
-  });
+    window.addEventListener("popstate", () => {
+      if (isOpen) closeGallery();
+    });
+  })();
 </script>
