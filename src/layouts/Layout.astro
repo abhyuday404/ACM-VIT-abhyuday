@@ -70,14 +70,6 @@ const description =
       href={getAssetUrl("/background_pattern.webp")}
       fetchpriority="high"
     />
-    <link
-      rel="preload"
-      as="video"
-      href={getAssetUrl("/ACMWebsiteVid.webm")}
-      type="video/webm"
-      fetchpriority="high"
-    />
-
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
@@ -243,6 +235,17 @@ const description =
       (() => {
         let variantRafId = 0;
 
+        const activateClonedScripts = (scripts: HTMLScriptElement[]) => {
+          scripts.forEach((oldScript) => {
+            const script = document.createElement("script");
+            Array.from(oldScript.attributes).forEach(({ name, value }) => {
+              script.setAttribute(name, value);
+            });
+            script.textContent = oldScript.textContent;
+            oldScript.replaceWith(script);
+          });
+        };
+
         const mountVariants = () => {
           const hosts = document.querySelectorAll("[data-variant-host]");
           if (!hosts.length) {
@@ -277,7 +280,13 @@ const description =
               }
             });
 
-            element.appendChild(template.content.cloneNode(true));
+            const fragment = template.content.cloneNode(true) as DocumentFragment;
+            const clonedScripts = Array.from(
+              fragment.querySelectorAll("script")
+            ) as HTMLScriptElement[];
+
+            element.appendChild(fragment);
+            activateClonedScripts(clonedScripts);
             element.dataset.variantReady = variant;
             mountedAny = true;
             mountedVariant = variant;
@@ -399,7 +408,7 @@ const description =
   body {
     margin: 0;
     width: 100%;
-    height: 100%;
+    min-height: 100%;
     overflow-x: hidden;
     position: relative;
     background: #0d0e0d;

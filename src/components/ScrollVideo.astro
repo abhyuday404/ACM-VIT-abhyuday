@@ -27,7 +27,7 @@ const normalizedMp4Src = mp4Src.startsWith("/") ? mp4Src : `/${mp4Src}`;
         data-end-time={endTime ?? ""}
         muted
         playsinline
-        preload="auto"
+        preload="metadata"
     >
         <!-- Use CDN resolved URL if configured, fallback to local path -->
         <source src={getAssetUrl(normalizedWebmSrc)} type="video/webm" />

@@ -130,11 +130,7 @@
 </style>
 
 <script>
-  import { gsap } from "gsap";
-  import { ScrollTrigger } from "gsap/ScrollTrigger";
   import { getAssetUrl } from "../utils/cdn";
-
-  gsap.registerPlugin(ScrollTrigger);
 
   const canvas = document.querySelector("#laptop-canvas") as HTMLCanvasElement;
   const context = canvas?.getContext("2d", { alpha: true });
@@ -143,7 +139,7 @@
   const frameCount = 125;
   const narrowQuery = "(max-width: 1024px)";
   let maxCacheSize = frameCount;
-  let preloadRadius = 8;
+  let preloadRadius = 4;
   const pendingFrames = new Set<number>();
   const frameCache = new Map<number, HTMLImageElement>();
   const prefersReducedMotion = window.matchMedia(
@@ -157,12 +153,12 @@
   const updatePerfSettings = () => {
     const isNarrow = window.matchMedia(narrowQuery).matches;
     maxCacheSize = isNarrow ? Math.min(12, frameCount) : frameCount;
-    preloadRadius = isNarrow ? 3 : 8;
+    preloadRadius = isNarrow ? 2 : 4;
   };
 
   const currentFrame = (index: number) =>
     getAssetUrl(
-      `/outputFolder/frame_${(index + 1).toString().padStart(4, "0")}.png`
+      `/outputFolder/frame_${(index + 1).toString().padStart(4, "0")}.webp`
     );
 
   const clampFrame = (index: number) =>
@@ -240,33 +236,6 @@
     }
   };
 
-  let preloadAllScheduled = false;
-  const preloadAllFrames = async () => {
-    const concurrency = Math.min(6, frameCount);
-    let nextIndex = 0;
-
-    const worker = async () => {
-      while (nextIndex < frameCount) {
-        const index = nextIndex;
-        nextIndex += 1;
-        await loadFrame(index);
-      }
-    };
-
-    await Promise.all(
-      Array.from({ length: concurrency }, () => worker())
-    );
-  };
-
-  const schedulePreloadAll = () => {
-    if (prefersReducedMotion || preloadAllScheduled) return;
-    if (window.matchMedia(narrowQuery).matches) return;
-    preloadAllScheduled = true;
-    window.setTimeout(() => {
-      void preloadAllFrames();
-    }, 200);
-  };
-
   let lastRenderedFrame = -1;
   let lastCanvasWidth = 0;
   let lastCanvasHeight = 0;
@@ -298,12 +267,65 @@
     queueFrames(frame);
   };
 
+  const clamp01 = (value: number) => Math.max(0, Math.min(1, value));
+
+  const smoothstep = (start: number, end: number, value: number) => {
+    const progress = clamp01((value - start) / Math.max(0.001, end - start));
+    return progress * progress * (3 - 2 * progress);
+  };
+
+  const getSectionProgress = () => {
+    if (!(section instanceof HTMLElement)) return 0;
+    const rect = section.getBoundingClientRect();
+    const viewportHeight =
+      window.innerHeight || document.documentElement.clientHeight || 1;
+    const travel = Math.max(1, rect.height - viewportHeight);
+    return clamp01(-rect.top / travel);
+  };
+
+  const applyOverlayProgress = (progress: number) => {
+    const heading = document.querySelector(
+      ".contact-heading"
+    ) as HTMLElement | null;
+    const formOverlay = document.querySelector(
+      ".contact-form-overlay"
+    ) as HTMLElement | null;
+
+    const headingFade = smoothstep(0.35, 0.5, progress);
+    if (heading) {
+      heading.style.opacity = `${1 - headingFade}`;
+      heading.style.transform = `translate(-50%, calc(-50% - ${headingFade * 50}px))`;
+    }
+
+    const formFade = smoothstep(0.62, 0.82, progress);
+    if (formOverlay) {
+      formOverlay.style.opacity = `${formFade}`;
+      formOverlay.style.pointerEvents = formFade > 0.9 ? "auto" : "none";
+    }
+  };
+
+  const updateFromScroll = () => {
+    const progress = getSectionProgress();
+    const frameProgress = smoothstep(0.05, 0.86, progress);
+    laptop.frame = frameProgress * (frameCount - 1);
+    render();
+    applyOverlayProgress(progress);
+  };
+
+  let scrollRafId = 0;
+  const queueScrollUpdate = () => {
+    if (scrollRafId) return;
+    scrollRafId = requestAnimationFrame(() => {
+      scrollRafId = 0;
+      updateFromScroll();
+    });
+  };
+
   const initSequence = async () => {
     if (!canvas || !context) return;
     resizeCanvas();
     await loadFrame(0);
     render();
-    schedulePreloadAll();
 
     if (prefersReducedMotion) {
       const formOverlay = document.querySelector(
@@ -323,47 +345,14 @@
       return;
     }
 
-    const tl = gsap.timeline({
-      scrollTrigger: {
-        trigger: ".laptop-section",
-        start: "top top",
-        end: "bottom bottom",
-        scrub: 0.5,
-      },
+    updateFromScroll();
+    window.addEventListener("scroll", queueScrollUpdate, { passive: true });
+    window.visualViewport?.addEventListener("scroll", queueScrollUpdate, {
+      passive: true,
     });
-
-    tl.to(laptop, {
-      frame: 0,
-      duration: 0.5,
-      onUpdate: render,
-    })
-      .to(laptop, {
-        frame: frameCount - 1,
-        snap: "frame",
-        ease: "none",
-        duration: 2,
-        onUpdate: render,
-      })
-      .to(
-        ".contact-heading",
-        {
-          opacity: 0,
-          y: -50,
-          duration: (20 / frameCount) * 2,
-          ease: "none",
-        },
-        `<+${(40 / frameCount) * 2}`
-      )
-      .to(
-        ".contact-form-overlay",
-        {
-          opacity: 1,
-          pointerEvents: "auto",
-          duration: 0.5,
-          ease: "power2.inOut",
-        },
-        `<+${(40 / frameCount) * 2}`
-      );
+    window.visualViewport?.addEventListener("resize", queueScrollUpdate, {
+      passive: true,
+    });
   };
 
   let started = false;
@@ -371,6 +360,13 @@
     if (started) return;
     started = true;
     initSequence();
+  };
+
+  const isSectionNearViewport = () => {
+    if (!(section instanceof HTMLElement)) return false;
+    const rect = section.getBoundingClientRect();
+    const margin = 240;
+    return rect.top < window.innerHeight + margin && rect.bottom > -margin;
   };
 
   if (section && "IntersectionObserver" in window) {
@@ -384,6 +380,22 @@
       { rootMargin: "200px" }
     );
     observer.observe(section);
+
+    const checkSectionVisibility = () => {
+      if (isSectionNearViewport()) {
+        startWhenVisible();
+        observer.disconnect();
+      }
+    };
+
+    requestAnimationFrame(checkSectionVisibility);
+    window.setTimeout(checkSectionVisibility, 250);
+    window.setTimeout(checkSectionVisibility, 1000);
+    window.setTimeout(checkSectionVisibility, 2500);
+    window.addEventListener("scroll", checkSectionVisibility, { passive: true });
+    window.addEventListener("hashchange", checkSectionVisibility, {
+      passive: true,
+    });
   } else {
     startWhenVisible();
   }
@@ -391,7 +403,7 @@
   window.addEventListener("resize", () => {
     resizeCanvas();
     lastRenderedFrame = -1;
-    render();
+    updateFromScroll();
   });
 
   // Form handling
