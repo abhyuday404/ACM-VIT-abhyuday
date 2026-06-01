@@ -324,7 +324,9 @@
   const initSequence = async () => {
     if (!canvas || !context) return;
     resizeCanvas();
-    await loadFrame(0);
+    void loadFrame(0).then(() => {
+      if (clampFrame(laptop.frame) === 0) render();
+    });
     render();
 
     if (prefersReducedMotion) {
