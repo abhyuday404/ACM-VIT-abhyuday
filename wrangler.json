@@ -10,7 +10,7 @@
     "binding": "ASSETS"
   },
   "vars": {
-    "PUBLIC_CDN_URL": "https://acmvitin.s3.ap-south-1.amazonaws.com",
+    "PUBLIC_CDN_URL": "https://d3nq00vfgndsnf.cloudfront.net",
     "KEYSTATIC_GITHUB_REPO_OWNER": "ACM-VIT",
     "KEYSTATIC_GITHUB_REPO_NAME": "ACM-VIT"
   },
