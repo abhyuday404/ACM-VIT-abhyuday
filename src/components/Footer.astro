@@ -460,6 +460,7 @@ const footerForegroundSrc = getAssetUrl("/footer/footer-foreground-new.png");
       <div
         class="footer-star-art hidden md:flex w-full justify-center items-end mt-auto pointer-events-none"
       >
+        <div class="footer-star-fade" aria-hidden="true"></div>
         <div class="footer-star-scene">
           <img
             src={footerBackgroundSrc}
@@ -860,6 +861,7 @@ const footerForegroundSrc = getAssetUrl("/footer/footer-foreground-new.png");
       <div
         class="footer-star-art w-full flex justify-center items-end mt-auto pointer-events-none"
       >
+        <div class="footer-star-fade" aria-hidden="true"></div>
         <div class="footer-star-scene">
           <img
             src={footerBackgroundSrc}
@@ -1344,11 +1346,34 @@ const footerForegroundSrc = getAssetUrl("/footer/footer-foreground-new.png");
     }
   }
 
+  .footer-star-fade {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 100%;
+    z-index: 8;
+    width: 100%;
+    height: clamp(14rem, 28vw, 26rem);
+    margin-bottom: -1px;
+    pointer-events: none;
+    background: linear-gradient(
+      to top,
+      rgb(2, 3, 8) 0%,
+      rgba(2, 3, 8, 0) 100%
+    );
+  }
+
+  @media (max-width: 767px) {
+    .footer-star-fade {
+      height: clamp(8rem, 38vw, 18rem);
+    }
+  }
+
   .footer-star-art {
     position: relative;
     isolation: isolate;
     background: #020308;
-    overflow: hidden;
+    overflow: visible;
     box-shadow:
       0 -3rem 4.5rem rgba(2, 3, 8, 0.92),
       inset 4rem 0 5rem rgba(2, 3, 8, 0.86),
